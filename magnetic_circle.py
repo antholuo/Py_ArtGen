@@ -218,8 +218,8 @@ def main():
     surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, WIDTH, HEIGHT)
     context = cairo.Context(surface)
     generate(context)
-    timestr = time.strftime("%H%M%S")
-    date = time.strftime("%Y%m%d")
+    timestr = time.strftime("%H:%M:%S")
+    date = time.strftime("%Y-%m-%d")
     directory = "Outputs/magnetic_circle/" + date + "/"
     if not os.path.exists(directory):
         os.makedirs(directory)
@@ -228,6 +228,6 @@ def main():
 
 if __name__ == "__main__":
     i = 0
-    while (i < 10):
+    while (i < 20):
         main()
         i += 1
