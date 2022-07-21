@@ -7,16 +7,20 @@ Generates random art based on magnets around a circle.
 """
 
 ### Imports
-import cairo
 import math
+import os
 import random
+import time
+
+import cairo
 
 ### Global Variables
+
 FILE_FORMAT = "PNG"
 
-HEIGHT = "1000"
-WIDTH = "1000"
-GRID_SIZE = "100"
+HEIGHT = 1000
+WIDTH = 1000
+GRID_SIZE = 100
 BORDER_SIZE = 50
 MAG_BORDER = 450
 STEP_X, STEP_Y = (WIDTH // GRID_SIZE), (HEIGHT // GRID_SIZE)
@@ -118,18 +122,112 @@ class Particle:
         :param context:
         :return:
         """
-        if self.drawStroke is not False:
+        if self.draw_stroke is not False:
             context.set_line_width(0.9)
             context.set_source_rgba(0, 0, 0, 1)
             context.move_to(self.last_x, self.last_y)
             context.line_to(self.x, self.y)
             context.stroke()
 
+
 class Magnet:
     """
     Magnet class. Each magnet pulls on all particles.
     """
+
     def __init__(self, x, y, pole):
         self.x = x
         self.y = y
         self.pole = pole
+
+
+def generate(context):
+    """
+    Main function?
+    :return:
+    """
+    context.set_source_rgba(0.95, 0.95, 0.95, 1)
+    context.paint()
+
+    magnets = []
+    particles = []
+    num_magnets = random.randint(2, 15)
+    sum_x, sum_y = 0, 0
+    sums = 0
+
+    print("number of magnets: " + str(num_magnets))
+
+    for m in range(num_magnets):
+        pole = 1
+        if random.uniform(0, 1) < 0.5:
+            pole = -1
+        magnets.append(Magnet(
+                random.randint(100, WIDTH - 100),
+                random.randint(100, HEIGHT - 100),
+                pole
+        ))
+
+    start_num = 360
+    a = (math.pi * 2) / start_num
+
+    for x in range(100, WIDTH - 100, (WIDTH - 200) // 1):
+        for y in range(100, HEIGHT - 100, (HEIGHT - 200) // 1):
+            for i in range(start_num):
+                # generate x, y position of particles
+                xx = x + (math.sin(a * i) * 250) + ((WIDTH - 200) // 2)
+                yy = y + (math.cos(a * i) * 250) + ((HEIGHT - 200) // 2)
+
+                # generate velocity in x and y of particles
+                vx = random.uniform(-1, 1) * 0.5
+                vy = random.uniform(-1, 1) * 0.5
+
+                # add to particle array
+                particles.append(Particle(xx, yy, vx, vy))
+
+    for p in particles:
+        for t in range(1000):
+            for m in magnets:
+                # calculate sums for each magnet
+                sums = p.calculateForce(m.x, m.y, m.pole * 4)
+
+                # split sums into x and y
+                sum_x = sum_x + sums[0]
+                sum_y = sum_y + sums[1]
+
+            # normalize
+            sum_x = sum_x / len(magnets)
+            sum_y = sum_y / len(magnets)
+
+            # apply new forces to the particles and calculate new position \
+            # after each time step
+            p.resetForce()
+            p.setForce(sum_x, sum_y)
+            p.update()
+
+            # if meeting timing, draw.
+            if t % 8 == 0:
+                p.draw(context)
+                p.setLastPos()
+
+
+def main():
+    """
+    Main function to call the rest
+    :return:
+    """
+    surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, WIDTH, HEIGHT)
+    context = cairo.Context(surface)
+    generate(context)
+    timestr = time.strftime("%H%M%S")
+    date = time.strftime("%Y%m%d")
+    directory = "Outputs/magnetic_circle/" + date + "/"
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    surface.write_to_png(directory + str(timestr) + '.png')
+
+
+if __name__ == "__main__":
+    i = 0
+    while (i < 10):
+        main()
+        i += 1
